@@ -1,0 +1,20 @@
+# Imágenes de trabajo para mejoras futuras: no van al repositorio
+imgs/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Copias de seguridad y registros
+*.bak
+*.log
+
+# Variables de entorno
+.env
