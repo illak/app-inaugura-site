@@ -97,6 +97,8 @@
       radial-gradient(ellipse 55% 75% at 50% 0%,rgba(255,236,190,.20),rgba(255,236,190,0) 70%),
       linear-gradient(180deg,rgba(0,0,0,0) 78%,rgba(0,0,0,.5) 100%)}
 
+  #show.sin-texto #stage{justify-content:center}
+  #show.sin-texto #cabeza{display:none}
   #cabeza{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
     padding:3vh 5vw 0;text-align:center}
   #titulo{font-weight:400;font-size:clamp(56px,10.5vw,190px);line-height:.95;letter-spacing:-.015em;
@@ -176,8 +178,8 @@
       <input id="f-url" type="text" placeholder="campus.ejemplo.edu.ar" autocomplete="off" spellcheck="false">
     </div>
     <div class="campo">
-      <label for="f-titulo">Título</label>
-      <input id="f-titulo" type="text" value="Innova Futuro" autocomplete="off">
+      <label for="f-titulo">Título (opcional)</label>
+      <input id="f-titulo" type="text" placeholder="Innova Futuro" autocomplete="off">
     </div>
     <div class="campo">
       <label for="f-sub">Subtítulo (opcional)</label>
@@ -358,8 +360,8 @@
   }
 
   const url     = normalizar(q.get('url'));
-  const titulo  = q.get('titulo') || 'Innova Futuro';
-  const sub     = q.get('sub') || '';
+  const titulo  = (q.get('titulo') || '').trim();
+  const sub     = (q.get('sub') || '').trim();
   const modo    = (q.get('modo') === 'redirigir') ? 'redirigir' : 'iframe';
   const demora  = Math.max(0, parseInt(q.get('demora') || '2500', 10));
   const pista   = q.get('pista') === '1';
@@ -406,12 +408,16 @@
   /* ---------- Escena ---------- */
   const show = $('show');
   show.style.display = 'block';
-  $('titulo').textContent = titulo;
-  $('w-titulo').textContent = titulo;
-  $('w-sub').textContent = sub || 'Bienvenidos';
-  if(sub) $('subtitulo').textContent = sub; else $('subtitulo').style.display = 'none';
+  // Título y subtítulo son opcionales: lo que no se completa, no se muestra
+  function texto(id, wid, valor){
+    if(valor){ $(id).textContent = valor; $(wid).textContent = valor; }
+    else { $(id).style.display = 'none'; $(wid).style.display = 'none'; }
+  }
+  texto('titulo','w-titulo', titulo);
+  texto('subtitulo','w-sub', sub);
+  if(!titulo && !sub) show.classList.add('sin-texto');   // la cinta pasa al centro de la pantalla
   if(pista) $('pista').classList.add('on');
-  document.title = titulo;
+  document.title = titulo || 'Inauguración';
 
   if(modo === 'iframe'){ $('site').src = url; }       // se precarga detrás de las cortinas
   else { $('welcome').style.display = 'flex'; }
