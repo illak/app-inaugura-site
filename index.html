@@ -107,37 +107,7 @@
     animation:aparece 1.6s 1s ease both}
   @keyframes aparece{from{opacity:0}to{opacity:1}}
 
-  /* Cinta de satén */
-  #escena .rib{fill:none;stroke-linecap:butt}
-  .s0{stroke:var(--c-sombra);stroke-width:58}
-  .s1{stroke:var(--c-base);stroke-width:50}
-  .s2{stroke:var(--c-luz);stroke-width:22;opacity:.5;transform:translateY(-7px)}
-  .s3{stroke:#fff;stroke-width:5;opacity:.14;transform:translateY(-10px)}
-  .s4,.s5{stroke:rgba(255,255,255,.32);stroke-width:1.6;stroke-dasharray:7 6}
-  .s4{transform:translateY(-20px)}
-  .s5{transform:translateY(20px)}
-  .half{filter:drop-shadow(0 10px 8px rgba(0,0,0,.45))}
-  /* La cinta con física se dibuja por JS; las barras de arriba solo se usan con corte=simple */
-  #show:not(.corte-simple) .half{display:none}
-  #show.corte-simple #cintaFis{display:none}
   #cintaFis path{stroke-linejoin:round}
-  .half.l,.half.r{visibility:hidden}
-  #show.fall .entera{visibility:hidden}
-  #show.fall .half.l,#show.fall .half.r{visibility:visible}
-  .half.l{transform-origin:180px 170px}
-  .half.r{transform-origin:1420px 170px}
-  #show.fall .half.l{animation:cae-l 1.3s forwards}
-  #show.fall .half.r{animation:cae-r 1.3s forwards}
-  @keyframes cae-l{
-    0%{transform:rotate(0);animation-timing-function:cubic-bezier(.55,0,.9,.55)}
-    58%{transform:rotate(89deg);animation-timing-function:cubic-bezier(.2,.6,.4,1)}
-    76%{transform:rotate(80deg);animation-timing-function:ease-in-out}
-    100%{transform:rotate(87deg)}}
-  @keyframes cae-r{
-    0%{transform:rotate(0);animation-timing-function:cubic-bezier(.55,0,.9,.55)}
-    58%{transform:rotate(-89deg);animation-timing-function:cubic-bezier(.2,.6,.4,1)}
-    76%{transform:rotate(-80deg);animation-timing-function:ease-in-out}
-    100%{transform:rotate(-87deg)}}
 
   /* Tijeras: se abren al acercarse, cierran con aceleración y se retiran */
   #rise{transition:transform .62s cubic-bezier(.3,.75,.2,1)}
@@ -224,13 +194,6 @@
       </div>
     </div>
     <div class="campo">
-      <label for="f-corte">Corte de la cinta</label>
-      <select id="f-corte">
-        <option value="realista">Realista: la cinta cae como una tela</option>
-        <option value="simple">Simple: las dos mitades caen rígidas</option>
-      </select>
-    </div>
-    <div class="campo">
       <span class="rotulo">Efectos (todos opcionales)</span>
       <label class="check"><input type="checkbox" id="f-confeti"> Confeti al abrirse las cortinas</label>
       <label class="check"><input type="checkbox" id="f-destello"> Destello al cortar la cinta</label>
@@ -277,33 +240,9 @@
           <stop offset="0" stop-color="#4f3e1b"/><stop offset=".28" stop-color="#a98f56"/>
           <stop offset=".55" stop-color="#8c7440"/><stop offset="1" stop-color="#4a3a19"/>
         </linearGradient>
-        <radialGradient id="bola" cx=".35" cy=".3" r=".8">
-          <stop offset="0" stop-color="#d2bd8a"/><stop offset=".45" stop-color="#9c8148"/><stop offset="1" stop-color="#4a3a19"/>
-        </radialGradient>
         <linearGradient id="acero" x1="0" x2="1" y1="0" y2="0">
           <stop offset="0" stop-color="#5d626c"/><stop offset=".45" stop-color="#a3a7ae"/><stop offset="1" stop-color="#585d68"/>
         </linearGradient>
-        <radialGradient id="suelo">
-          <stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
-        </radialGradient>
-
-        <path id="cl" class="rib" fill="none" stroke-linecap="butt" d="M180 170 Q490 220 800 220"/>
-        <path id="cr" class="rib" fill="none" stroke-linecap="butt" d="M800 220 Q1110 220 1420 170"/>
-        <path id="cw" class="rib" fill="none" stroke-linecap="butt" d="M180 170 Q800 270 1420 170"/>
-
-        <!-- Poste dorado con la cinta atada -->
-        <g id="poste">
-          <ellipse cx="0" cy="566" rx="92" ry="14" fill="url(#suelo)"/>
-          <ellipse cx="0" cy="552" rx="46" ry="10" fill="#4a3a19"/>
-          <rect x="-26" y="530" width="52" height="22" rx="7" fill="url(#oro)"/>
-          <ellipse cx="0" cy="530" rx="26" ry="6" fill="#a58c55"/>
-          <rect x="-8" y="150" width="16" height="384" fill="url(#oro)"/>
-          <rect x="-13" y="148" width="26" height="9" rx="3" fill="url(#oro)"/>
-          <circle cx="0" cy="136" r="19" fill="url(#bola)"/>
-          <rect x="-14" y="141" width="28" height="60" rx="3" style="fill:var(--c-sombra)"/>
-          <rect x="-14" y="143" width="28" height="56" style="fill:var(--c-base)"/>
-          <rect x="-14" y="147" width="6" height="48" style="fill:var(--c-luz);opacity:.8"/>
-        </g>
 
         <!-- Una hoja de las tijeras: filo de acero + mango dorado -->
         <g id="pieza">
@@ -313,28 +252,8 @@
         </g>
       </defs>
 
-      <!-- Cinta con física: la dibuja el script -->
+      <!-- Cinta con física, de borde a borde: la dibuja el script -->
       <g id="cintaFis"></g>
-
-      <!-- Cinta de respaldo (solo con corte=simple) -->
-      <!-- Cinta entera: una sola pieza, sin costura, hasta el corte -->
-      <g class="half entera">
-        <use href="#cw" class="s0"/><use href="#cw" class="s1"/><use href="#cw" class="s2"/>
-        <use href="#cw" class="s3"/><use href="#cw" class="s4"/><use href="#cw" class="s5"/>
-      </g>
-
-      <!-- Cinta: dos mitades que se separan al cortar -->
-      <g class="half l">
-        <use href="#cl" class="s0"/><use href="#cl" class="s1"/><use href="#cl" class="s2"/>
-        <use href="#cl" class="s3"/><use href="#cl" class="s4"/><use href="#cl" class="s5"/>
-      </g>
-      <g class="half r">
-        <use href="#cr" class="s0"/><use href="#cr" class="s1"/><use href="#cr" class="s2"/>
-        <use href="#cr" class="s3"/><use href="#cr" class="s4"/><use href="#cr" class="s5"/>
-      </g>
-
-      <use href="#poste" x="180"/>
-      <use href="#poste" x="1420"/>
 
       <!-- Destello del corte -->
       <g transform="translate(800 220)">
@@ -440,7 +359,6 @@
       if($('f-confeti').checked)  p.set('confeti', '1');
       if($('f-destello').checked) p.set('destello', '1');
       if($('f-sonido').value !== '0') p.set('sonido', $('f-sonido').value);
-      if($('f-corte').value === 'simple') p.set('corte', 'simple');
       const link = location.href.split('?')[0].split('#')[0] + '?' + p.toString();
       $('enlace').style.display = 'block';
       $('enlace').textContent = link;
@@ -524,32 +442,31 @@
     })(t0);
   }
 
-  /* ===== Cinta con física: cadena de puntos con gravedad, piso y torsión de la tela ===== */
-  const simple  = q.get('corte') === 'simple';          // alternativa: las dos barras rígidas de antes
+  /* ===== Cinta con física: cadena de puntos con gravedad y torsión de la tela, de un borde al otro de la pantalla ===== */
   const reducir = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(simple) show.classList.add('corte-simple');
-
   const NS = 'http://www.w3.org/2000/svg';
-  const AI = {x:180,y:170}, AD = {x:1420,y:170}, CT = {x:800,y:270};   // postes y control de la curva
-  const ANCHO = 50, NP = 48, SUELO = 556, GRAV = 2400, PASO = 1/120, DIAG = .22, RETROCESO = 420;
+  const ANCHO = 50, YC = 170, FLECHA = 60, MARGEN = 60, HOLGURA = -8, GRAV = 3200, PASO = 1/120, DIAG = .22, RETROCESO = 420;
   const ss = t => { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); };
   const HILOS = [{f:-.34,a:.35,l:7,c:2},{f:-.12,a:-.2,l:9,c:3},{f:.14,a:.3,l:6,c:2},{f:.36,a:-.4,l:8,c:3}];
   const raiz = $('cintaFis');
+  let NP = 0, SEG = 0, SUELO = 800, XL = 0, XR = 1600, base = [];
 
-  /* Puntos iniciales: la curva de la cinta tensa, repartidos a igual distancia */
-  function curva(u){ const a = 1-u; return {x:a*a*AI.x+2*a*u*CT.x+u*u*AD.x, y:a*a*AI.y+2*a*u*CT.y+u*u*AD.y}; }
-  const base = []; let LONG = 0;
-  (function(){
-    const M = 3000, acum = [0], pts = [curva(0)];
-    for(let k=1;k<=M;k++){ const p = curva(k/M); acum.push(acum[k-1] + Math.hypot(p.x-pts[k-1].x, p.y-pts[k-1].y)); pts.push(p); }
-    LONG = acum[M]; let j = 0;
-    for(let k=0;k<NP;k++){
-      const d = LONG*k/(NP-1); while(j<M-1 && acum[j+1]<d) j++;
+  /* La cinta cubre todo el ancho de la ventana (y sobra un poco a cada lado). Se calcula en las unidades del dibujo. */
+  function geometria(){
+    const r = $('escena').getBoundingClientRect(), k = (r.width/1600) || 1;
+    XL = -r.left/k; XR = (innerWidth - r.left)/k; SUELO = (innerHeight - r.top)/k + 150;   // el "piso" queda fuera de la pantalla
+    const a = {x:XL-MARGEN, y:YC}, b = {x:XR+MARGEN, y:YC}, c = {x:(a.x+b.x)/2, y:YC+2*FLECHA};
+    const curva = u => { const t = 1-u; return {x:t*t*a.x+2*t*u*c.x+u*u*b.x, y:t*t*a.y+2*t*u*c.y+u*u*b.y}; };
+    const M = 4000, acum = [0], pts = [curva(0)];
+    for(let i=1;i<=M;i++){ const p = curva(i/M); acum.push(acum[i-1] + Math.hypot(p.x-pts[i-1].x, p.y-pts[i-1].y)); pts.push(p); }
+    const LONG = acum[M]; NP = Math.max(24, 2*Math.round(LONG/52)); SEG = LONG/(NP-1);
+    base = []; let j = 0;
+    for(let i=0;i<NP;i++){
+      const d = LONG*i/(NP-1); while(j<M-1 && acum[j+1]<d) j++;
       const f = (d-acum[j])/((acum[j+1]-acum[j])||1);
       base.push({x:pts[j].x+(pts[j+1].x-pts[j].x)*f, y:pts[j].y+(pts[j+1].y-pts[j].y)*f});
     }
-  })();
-  const SEG = LONG/(NP-1);
+  }
 
   /* Una pieza de cinta = grupo SVG con sus capas (sombra, borde, tela, revés, brillos, costuras, hilos) */
   function trazo(g, fill, op, tr){
@@ -681,29 +598,40 @@
   }
 
   /* Estado y bucle de dibujo */
-  let tClick = null, tDiv = null, acum = 0, tsim = 0, vivo = true, piezas = [];
-  const entera = simple ? null : crearPieza(base.map(p=>p.x), base.map(p=>p.y), {anc:'both', libre:null, signo:0, fase:0, ax:0, ay:0});
+  let tClick = null, tDiv = null, acum = 0, tsim = 0, vivo = true, piezas = [], entera = null, pendiente = false;
+
+  function reconstruir(){                                                   // al iniciar y si cambia el tamaño de la ventana (p. ej. pantalla completa)
+    if(tDiv) return;
+    if(entera) entera.g.remove();
+    geometria();
+    entera = crearPieza(base.map(p=>p.x), base.map(p=>p.y), {anc:'both', libre:null, signo:0, fase:0, ax:0, ay:0});
+  }
+  reconstruir();
+  addEventListener('resize', () => { if(!pendiente){ pendiente = true; requestAnimationFrame(() => { pendiente = false; reconstruir(); }); } });
 
   function dividir(){
-    const m = NP/2, L = crearPieza(entera.x.slice(0,m), entera.y.slice(0,m), {anc:'first', libre:'last',  signo:-1, fase:.6,  ax:AI.x, ay:AI.y});
-    const R = crearPieza(entera.x.slice(m),   entera.y.slice(m),   {anc:'last',  libre:'first', signo:1,  fase:2.1, ax:AD.x, ay:AD.y});
-    for(let i=0;i<m;i++){                                                    // al soltarse la tensión, la cinta se recoge hacia el poste
-      L.px[i] = L.x[i] + RETROCESO*Math.pow(i/(m-1),1.6)*PASO;
-      R.px[i] = R.x[i] - RETROCESO*Math.pow(1-i/(m-1),1.6)*PASO;
-    }
-    entera.g.remove(); piezas = [L,R]; tDiv = performance.now(); acum = 0; tsim = 0;
+    const m = NP/2;
+    let iA = 0;     while(iA < m-1 && base[iA].x < XL + HOLGURA) iA++;      // la cinta cuelga de cada costado de la pantalla
+    let jA = NP-1;  while(jA > m   && base[jA].x > XR - HOLGURA) jA--;
+    const L = crearPieza(entera.x.slice(iA,m),    entera.y.slice(iA,m),    {anc:'first', libre:'last',  signo:-1, fase:.6,  ax:entera.x[iA], ay:entera.y[iA]});
+    const R = crearPieza(entera.x.slice(m,jA+1),  entera.y.slice(m,jA+1),  {anc:'last',  libre:'first', signo:1,  fase:2.1, ax:entera.x[jA], ay:entera.y[jA]});
+    for(let i=0;i<L.n;i++) L.px[i] = L.x[i] + RETROCESO*Math.pow(i/(L.n-1),1.6)*PASO;       // al soltarse la tensión, se recoge hacia el costado
+    for(let i=0;i<R.n;i++) R.px[i] = R.x[i] - RETROCESO*Math.pow(1-i/(R.n-1),1.6)*PASO;
+    entera.g.remove(); entera = null; piezas = [L,R]; tDiv = performance.now(); acum = 0; tsim = 0;
   }
 
   function cuadro(ahora){
     if(!vivo) return;
     const dt = Math.min(.05, (ahora - (cuadro.prev || ahora))/1000); cuadro.prev = ahora;
     if(!tDiv){
-      const hundir = tClick != null ? ss((ahora - tClick - 300)/340) : 0, s = ahora/1000;   // las tijeras presionan antes de cortar
-      for(let k=0;k<NP;k++){
-        const sw = reducir ? 0 : 1.4*Math.sin(Math.PI*k/(NP-1))*(Math.sin(.8*s) + .5*Math.sin(1.9*s + 1));
-        entera.x[k] = base[k].x; entera.y[k] = base[k].y + sw - 7*hundir*Math.exp(-Math.pow((base[k].x-800)/90, 2));
+      if(entera){
+        const hundir = tClick != null ? ss((ahora - tClick - 300)/340) : 0, s = ahora/1000;   // las tijeras presionan antes de cortar
+        for(let k=0;k<NP;k++){
+          const sw = reducir ? 0 : 1.4*Math.sin(Math.PI*k/(NP-1))*(Math.sin(.8*s) + .5*Math.sin(1.9*s + 1));
+          entera.x[k] = base[k].x; entera.y[k] = base[k].y + sw - 7*hundir*Math.exp(-Math.pow((base[k].x-800)/90, 2));
+        }
+        dibujar(entera, 0);
       }
-      dibujar(entera, 0);
     } else {
       const ts = .55 + .45*ss((ahora - tDiv)/500);                           // un instante más lento justo al cortar
       acum += dt*ts;
@@ -713,8 +641,8 @@
     }
     requestAnimationFrame(cuadro);
   }
-  if(!simple) requestAnimationFrame(cuadro);
-  if(q.get('debug') === '1') window.__cinta = {get piezas(){return piezas;}, get entera(){return entera;}, NP, SEG, SUELO};
+  requestAnimationFrame(cuadro);
+  if(q.get('debug') === '1') window.__cinta = {get piezas(){return piezas;}, get entera(){return entera;}, get NP(){return NP;}, get SEG(){return SEG;}, get SUELO(){return SUELO;}, get XL(){return XL;}, get XR(){return XR;}};
 
   /* Secuencia: tijeras suben y se abren → cierran (snip) → la cinta se parte y cae → se abren las cortinas */
   let estado = 'listo';
@@ -725,7 +653,7 @@
     window.focus();
     show.classList.add('cut');
     setTimeout(()=>{ show.classList.add('snip'); }, 640);
-    setTimeout(()=>{ show.classList.add('cortado'); if(sonCorte) snip(); if(!simple) dividir(); }, 740);
+    setTimeout(()=>{ show.classList.add('cortado'); if(sonCorte) snip(); dividir(); }, 740);
     setTimeout(()=>{ show.classList.add('fall'); }, 800);
     setTimeout(()=>{ show.classList.add('open'); if(sonFanfarria) fanfarria(); if(confetiOn) confeti(); }, 2500);
     setTimeout(()=>{
