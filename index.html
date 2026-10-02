@@ -92,6 +92,14 @@
   #show.fundido.redir.open #velo{animation:none}
   @keyframes funde{from{opacity:1}to{opacity:0}}
 
+  /* Estilo "foco": resplandor con un círculo claro en el punto del corte que se abre hasta mostrar el sitio */
+  #foco{position:absolute;inset:0;z-index:2;display:none;pointer-events:none;
+    background:radial-gradient(ellipse 70vw 78vh at var(--gx,50%) var(--gy,40%),
+      var(--f3) 0,var(--f3) 3%,var(--f2) 22%,var(--f1) 56%,var(--f0) 100%)}
+  #anillo{position:absolute;inset:0;z-index:2;display:none;pointer-events:none}
+  #show.foco #foco,#show.foco #anillo{display:block}
+  #show.foco .curtain,#show.foco #luz{display:none}
+
   /* Escenario: título + cinta */
   #stage{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
     cursor:pointer;transition:opacity .9s ease;-webkit-user-select:none;user-select:none}
@@ -199,12 +207,14 @@
       <select id="f-estilo">
         <option value="cortinas">Se abren las cortinas</option>
         <option value="fundido">Fondo liso que se funde con el sitio</option>
+        <option value="foco">Resplandor que se abre desde el centro</option>
       </select>
     </div>
     <div class="campo" id="g-fondo" hidden>
       <span class="rotulo">Color del fondo</span>
       <div class="colores" id="fondos" role="group" aria-label="Color del fondo">
         <button type="button" data-c="004583" style="background:#004583" aria-label="Azul" aria-pressed="true"></button>
+        <button type="button" data-c="13253b" style="background:#13253b" aria-label="Azul acero oscuro" aria-pressed="false"></button>
         <button type="button" data-c="0e0e10" style="background:#0e0e10" aria-label="Negro" aria-pressed="false"></button>
         <button type="button" data-c="2b2b30" style="background:#2b2b30" aria-label="Grafito" aria-pressed="false"></button>
         <button type="button" data-c="3a1018" style="background:#3a1018" aria-label="Burdeos oscuro" aria-pressed="false"></button>
@@ -253,6 +263,8 @@
   <div id="welcome"><h2 id="w-titulo"></h2><p id="w-sub"></p></div>
 
   <div id="velo"></div>
+  <div id="foco"></div>
+  <div id="anillo"></div>
   <div class="curtain l"></div>
   <div class="curtain r"></div>
 
@@ -352,7 +364,7 @@
   const sonido      = q.get('sonido') || '0';                         // 0 | corte | todo (1 = todo)
   const sonCorte    = sonido === 'corte' || sonido === 'todo' || sonido === '1';
   const sonFanfarria= sonido === 'todo'  || sonido === '1';
-  const fundido = q.get('estilo') === 'fundido';
+  const fundido = q.get('estilo') === 'fundido', foco = q.get('estilo') === 'foco';
   colorear(q.get('cinta'), q.get('cortina'));
 
   /* ---------- Sin URL: configuración ---------- */
@@ -370,8 +382,12 @@
     grupo('cortinas', c => cortinaSel = c);
     grupo('fondos', c => fondoSel = c);
     $('f-estilo').onchange = () => {
-      const f = $('f-estilo').value === 'fundido';
-      $('g-fondo').hidden = !f; $('g-cortina').hidden = f;
+      const e = $('f-estilo').value;
+      $('g-fondo').hidden = e === 'cortinas'; $('g-cortina').hidden = e !== 'cortinas';
+      if(e !== 'cortinas'){                               // cada estilo arranca con su color base
+        fondoSel = e === 'foco' ? '13253b' : '004583';
+        document.querySelectorAll('#fondos button').forEach(x => x.setAttribute('aria-pressed', x.dataset.c === fondoSel));
+      }
     };
     function armar(){
       const u = normalizar($('f-url').value);
@@ -382,7 +398,7 @@
       if($('f-sub').value.trim())    p.set('sub', $('f-sub').value.trim());
       p.set('modo', $('f-modo').value);
       p.set('cinta', cintaSel);
-      if($('f-estilo').value === 'fundido'){ p.set('estilo', 'fundido'); p.set('fondo', fondoSel); }
+      if($('f-estilo').value !== 'cortinas'){ p.set('estilo', $('f-estilo').value); p.set('fondo', fondoSel); }
       else p.set('cortina', cortinaSel);
       if($('f-pista').checked)    p.set('pista', '1');
       if($('f-confeti').checked)  p.set('confeti', '1');
@@ -417,6 +433,14 @@
     show.classList.add('fundido');
     if(modo !== 'iframe') show.classList.add('redir');
     document.documentElement.style.setProperty('--velo', '#' + (esHex(q.get('fondo')) ? q.get('fondo') : '004583'));
+  }
+  if(foco){                                            // resplandor azul con un círculo claro donde se corta la cinta
+    show.classList.add('foco');
+    const b = '#' + (esHex(q.get('fondo')) ? q.get('fondo') : '13253b'), r = document.documentElement.style;
+    r.setProperty('--f0', mezclar(b,'#000000',.38));
+    r.setProperty('--f1', b);
+    r.setProperty('--f2', mezclar(b,'#4a90e2',.5));
+    r.setProperty('--f3', mezclar(b,'#eaf3ff',.9));
   }
   if(pista) $('pista').classList.add('on');
   if(destelloOn) show.classList.add('fx-destello');
@@ -627,6 +651,7 @@
   }
 
   /* Estado y bucle de dibujo */
+  let gx = 0, gy = 0;
   let tClick = null, tDiv = null, acum = 0, tsim = 0, vivo = true, piezas = [], entera = null, pendiente = false;
 
   function reconstruir(){                                                   // al iniciar y si cambia el tamaño de la ventana (p. ej. pantalla completa)
@@ -634,6 +659,8 @@
     if(entera) entera.g.remove();
     geometria();
     entera = crearPieza(base.map(p=>p.x), base.map(p=>p.y), {anc:'both', libre:null, signo:0, fase:0, ax:0, ay:0});
+    if(foco){ const r = $('escena').getBoundingClientRect(), k = r.width/1600; gx = r.left + 800*k; gy = r.top + 236*k;
+      show.style.setProperty('--gx', gx.toFixed(1)+'px'); show.style.setProperty('--gy', gy.toFixed(1)+'px'); }
   }
   reconstruir();
   addEventListener('resize', () => { if(!pendiente){ pendiente = true; requestAnimationFrame(() => { pendiente = false; reconstruir(); }); } });
@@ -673,6 +700,18 @@
   requestAnimationFrame(cuadro);
   if(q.get('debug') === '1') window.__cinta = {get piezas(){return piezas;}, get entera(){return entera;}, get NP(){return NP;}, get SEG(){return SEG;}, get SUELO(){return SUELO;}, get XL(){return XL;}, get XR(){return XR;}};
 
+  /* El círculo claro se abre desde el punto del corte hasta mostrar el sitio (con un borde suave y un anillo de luz) */
+  function abrirFoco(){
+    const f = $('foco'), an = $('anillo'), W = innerWidth, H = innerHeight;
+    const R = Math.hypot(Math.max(gx, W-gx), Math.max(gy, H-gy)), F = Math.max(160, R*.22), D = 2800, t0 = performance.now();
+    (function paso(now){
+      const u = Math.min(1, (now-t0)/D), e = u < .5 ? 4*u*u*u : 1 - Math.pow(-2*u+2, 3)/2, r = e*(R+F), ri = Math.max(0, r-F);
+      f.style.webkitMaskImage = f.style.maskImage = 'radial-gradient(circle at '+gx+'px '+gy+'px, transparent '+ri+'px, #000 '+(r+1)+'px)';
+      an.style.background = 'radial-gradient(circle at '+gx+'px '+gy+'px, rgba(214,230,250,0) '+Math.max(0,r-F*.55)+'px, rgba(214,230,250,'+(.4*(1-u)).toFixed(3)+') '+Math.max(1,r-F*.12)+'px, rgba(214,230,250,0) '+(r+F*.18)+'px)';
+      if(u < 1) requestAnimationFrame(paso); else { f.style.display = 'none'; an.style.display = 'none'; }
+    })(t0);
+  }
+
   /* Secuencia: tijeras suben y se abren → cierran (snip) → la cinta se parte y cae → se abren las cortinas */
   let estado = 'listo';
   function cortar(){
@@ -684,7 +723,7 @@
     setTimeout(()=>{ show.classList.add('snip'); }, 640);
     setTimeout(()=>{ show.classList.add('cortado'); if(sonCorte) snip(); dividir(); }, 740);
     setTimeout(()=>{ show.classList.add('fall'); }, 800);
-    setTimeout(()=>{ show.classList.add('open'); if(sonFanfarria) fanfarria(); if(confetiOn) confeti(); }, 2500);
+    setTimeout(()=>{ show.classList.add('open'); if(foco && modo === 'iframe') abrirFoco(); if(sonFanfarria) fanfarria(); if(confetiOn) confeti(); }, 2500);
     setTimeout(()=>{
       estado = 'abierto'; vivo = false;
       $('stage').style.display = 'none';
