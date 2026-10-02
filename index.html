@@ -503,7 +503,7 @@
   /* ===== Cinta con física: cadena de puntos con gravedad y torsión de la tela, de un borde al otro de la pantalla ===== */
   const reducir = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const NS = 'http://www.w3.org/2000/svg';
-  const SATIN = foco, ANCHO = SATIN ? 84 : 62, YC = 170, FLECHA = 60, MARGEN = 60, HOLGURA = -8, GRAV = 3200, PASO = 1/120, DIAG = .22, RETROCESO = 420;
+  const SATIN = foco, ANCHO = SATIN ? 84 : 62, YC = 170, FLECHA = 60, MARGEN = 60, HOLGURA = -8, GRAV = 3200, PASO = 1/120, DIAG = .22, RETROCESO = 420, SUELTA = .3, ARRASTRE = 3600;
   const ss = t => { t = Math.max(0, Math.min(1, t)); return t*t*(3-2*t); };
   const HILOS = [{f:-.34,a:.35,l:7,c:2},{f:-.12,a:-.2,l:9,c:3},{f:.14,a:.3,l:6,c:2},{f:.36,a:-.4,l:8,c:3}];
   const raiz = $('cintaFis');
@@ -701,13 +701,15 @@
   /* Simulación (Verlet): gravedad, largo fijo entre puntos, resistencia a plegarse, piso y fricción */
   function simular(pz, h, t){
     const n = pz.n, ia = pz.ia, fx = pz.anc==='first' ? (i => i <= ia) : (i => i >= ia), X = pz.x, Y = pz.y, PX = pz.px, PY = pz.py;
+    if(t >= SUELTA && ia >= 0 && ia < n){ pz.ia = pz.anc==='first' ? -1 : n; return simular(pz, h, t); }   // se suelta del borde y cae hacia su costado
+    const lib = t >= SUELTA, arr = lib ? pz.signo*ARRASTRE*Math.min(1,(t-SUELTA)/.35)*h*h : 0;
     const amort = .9905, gh = GRAV*h*h;
     for(let i=0;i<n;i++){
       if(fx(i)) continue;
       const vx = (X[i]-PX[i])*amort, vy = (Y[i]-PY[i])*amort;
       pz.sp[i] += (Math.hypot(vx,vy)/h - pz.sp[i]) * .15;
       PX[i] = X[i]; PY[i] = Y[i];
-      X[i] += vx + 40*Math.sin(1.7*t + .55*i + pz.fase)*h*h;                  // brisa muy leve
+      X[i] += vx + arr + 40*Math.sin(1.7*t + .55*i + pz.fase)*h*h;           // brisa muy leve
       Y[i] += vy + gh;
     }
     for(let k=0;k<14;k++){
@@ -724,7 +726,7 @@
         }
       }
       for(let i=0;i<n;i++) if(Y[i] > SUELO) Y[i] = SUELO;
-      X[ia] = pz.ax; Y[ia] = pz.ay;
+      if(ia >= 0 && ia < n){ X[ia] = pz.ax; Y[ia] = pz.ay; }
     }
     for(let i=0;i<n;i++) if(Y[i] >= SUELO-.01) PX[i] = X[i] - (X[i]-PX[i])*.55;   // fricción con el piso
   }
@@ -802,7 +804,7 @@
     setTimeout(()=>{ show.classList.add('snip'); }, 640);
     setTimeout(()=>{ show.classList.add('cortado'); if(sonCorte) snip(); dividir(); }, 740);
     setTimeout(()=>{ show.classList.add('fall'); }, 800);
-    setTimeout(()=>{ show.classList.add('open'); if(foco && modo === 'iframe') abrirFoco(); if(sonFanfarria) fanfarria(); if(confetiOn) confeti(); }, 2500);
+    setTimeout(()=>{ show.classList.add('open'); if(foco && modo === 'iframe') abrirFoco(); if(sonFanfarria) fanfarria(); if(confetiOn) confeti(); }, 2000);
     setTimeout(()=>{
       estado = 'abierto'; vivo = false;
       $('stage').style.display = 'none';
