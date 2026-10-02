@@ -700,10 +700,10 @@
 
   /* Simulación (Verlet): gravedad, largo fijo entre puntos, resistencia a plegarse, piso y fricción */
   function simular(pz, h, t){
-    const n = pz.n, ia = pz.anc==='first' ? 0 : n-1, X = pz.x, Y = pz.y, PX = pz.px, PY = pz.py;
+    const n = pz.n, ia = pz.ia, fx = pz.anc==='first' ? (i => i <= ia) : (i => i >= ia), X = pz.x, Y = pz.y, PX = pz.px, PY = pz.py;
     const amort = .9905, gh = GRAV*h*h;
     for(let i=0;i<n;i++){
-      if(i===ia) continue;
+      if(fx(i)) continue;
       const vx = (X[i]-PX[i])*amort, vy = (Y[i]-PY[i])*amort;
       pz.sp[i] += (Math.hypot(vx,vy)/h - pz.sp[i]) * .15;
       PX[i] = X[i]; PY[i] = Y[i];
@@ -713,13 +713,13 @@
     for(let k=0;k<14;k++){
       for(let i=0;i<n-1;i++){                                                // largo fijo
         const dx = X[i+1]-X[i], dy = Y[i+1]-Y[i], L = Math.hypot(dx,dy) || 1e-6, df = (L-SEG)/L;
-        const fa = i===ia ? 0 : (i+1===ia ? 1 : .5), fb = i+1===ia ? 0 : (i===ia ? 1 : .5);
+        const fa = fx(i) ? 0 : (fx(i+1) ? 1 : .5), fb = fx(i+1) ? 0 : (fx(i) ? 1 : .5);
         X[i] += dx*df*fa; Y[i] += dy*df*fa; X[i+1] -= dx*df*fb; Y[i+1] -= dy*df*fb;
       }
       for(let i=0;i<n-2;i++){                                                // la cinta no se pliega del todo
         const dx = X[i+2]-X[i], dy = Y[i+2]-Y[i], L = Math.hypot(dx,dy) || 1e-6, mn = 2*SEG*.985;
         if(L < mn){
-          const df = (L-mn)/L*.3, fa = i===ia ? 0 : (i+2===ia ? 1 : .5), fb = i+2===ia ? 0 : (i===ia ? 1 : .5);
+          const df = (L-mn)/L*.3, fa = fx(i) ? 0 : (fx(i+2) ? 1 : .5), fb = fx(i+2) ? 0 : (fx(i) ? 1 : .5);
           X[i] += dx*df*fa; Y[i] += dy*df*fa; X[i+2] -= dx*df*fb; Y[i+2] -= dy*df*fb;
         }
       }
@@ -746,12 +746,12 @@
 
   function dividir(){
     const m = NP/2;
-    let iA = 0;     while(iA < m-1 && base[iA].x < XL + HOLGURA) iA++;      // la cinta cuelga de cada costado de la pantalla
-    let jA = NP-1;  while(jA > m   && base[jA].x > XR - HOLGURA) jA--;
-    const L = crearPieza(entera.x.slice(iA,m),    entera.y.slice(iA,m),    {anc:'first', libre:'last',  signo:-1, fase:.6,  ax:entera.x[iA], ay:entera.y[iA]});
-    const R = crearPieza(entera.x.slice(m,jA+1),  entera.y.slice(m,jA+1),  {anc:'last',  libre:'first', signo:1,  fase:2.1, ax:entera.x[jA], ay:entera.y[jA]});
-    for(let i=0;i<L.n;i++) L.px[i] = L.x[i] + RETROCESO*Math.pow(i/(L.n-1),1.6)*PASO;       // al soltarse la tensión, se recoge hacia el costado
-    for(let i=0;i<R.n;i++) R.px[i] = R.x[i] - RETROCESO*Math.pow(1-i/(R.n-1),1.6)*PASO;
+    let pa = 0;     while(pa < m-2 && base[pa+1].x < XL + 80) pa++;           // último punto fijo, fuera de pantalla: las puntas cuadradas no se ven
+    let jb = NP-1;  while(jb > m+1 && base[jb-1].x > XR - 80) jb--;
+    const L = crearPieza(entera.x.slice(0,m),  entera.y.slice(0,m),  {anc:'first', libre:'last',  signo:-1, fase:.6, ia:pa,      ax:entera.x[pa], ay:entera.y[pa]});
+    const R = crearPieza(entera.x.slice(m),    entera.y.slice(m),    {anc:'last',  libre:'first', signo:1,  fase:2.1, ia:jb-m,   ax:entera.x[jb], ay:entera.y[jb]});
+    for(let i=L.ia+1;i<L.n;i++) L.px[i] = L.x[i] + RETROCESO*Math.pow(i/(L.n-1),1.6)*PASO;       // al soltarse la tensión, se recoge hacia el costado
+    for(let i=0;i<R.ia;i++) R.px[i] = R.x[i] - RETROCESO*Math.pow(1-i/(R.n-1),1.6)*PASO;
     entera.g.remove(); entera = null; piezas = [L,R]; tDiv = performance.now(); acum = 0; tsim = 0;
   }
 
