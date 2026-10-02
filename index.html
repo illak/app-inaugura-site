@@ -93,6 +93,8 @@
   @keyframes funde{from{opacity:1}to{opacity:0}}
 
   /* Estilo "foco": resplandor con un círculo claro en el punto del corte que se abre hasta mostrar el sitio */
+  #cinta2d{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none}
+  #show.foco #cinta2d{display:block}
   #foco{position:absolute;inset:0;z-index:2;display:none;pointer-events:none;
     background:radial-gradient(ellipse 70vw 78vh at var(--gx,50%) var(--gy,40%),
       var(--f3) 0,var(--f3) 3%,var(--f2) 22%,var(--f1) 56%,var(--f0) 100%)}
@@ -275,6 +277,7 @@
       <p id="subtitulo"></p>
     </div>
 
+    <canvas id="cinta2d"></canvas>
     <svg id="escena" viewBox="0 0 1600 640" aria-hidden="true">
       <defs>
         <linearGradient id="oro" x1="0" x2="1" y1="0" y2="0">
@@ -528,20 +531,30 @@
 
   /* ----- Cinta satinada (estilo "foco"): tela ancha con ondas, reverso oscuro y brillo, sombreada por orientación ----- */
   const BINES = 48, VMAX = 1.25, LX = -.5, LY = -.55, LZ = .67, HX = -.2735, HY = -.3009, HZ = .9136;
-  let palSat = null;
+  let palC = null, lienzo = null, c2 = null, escK = 1;
+  const rgb = h => { const v = parseInt(h.slice(1),16); return [(v>>16)&255, (v>>8)&255, v&255]; };
+  const mixc = (a,b,t) => [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
   function paleta(){
     const b = getComputedStyle(document.documentElement).getPropertyValue('--c-base').trim() || '#d90000';
-    const osc = mezclar(b,'#000000',.42), luz = mezclar(b,'#ff6a50',.5), esp = mezclar(b,'#ffd0c8',.5), col = [];
-    for(let j=0;j<BINES;j++){
-      const v = (j+.5)/BINES*VMAX;
-      col.push(v < .55 ? mezclar(osc,b,v/.55) : v < .95 ? mezclar(b,luz,(v-.55)/.4) : mezclar(luz,esp,Math.min(1,(v-.95)/.3)));
-    }
-    return {col, base: mezclar(b,'#000000',.2)};
+    return {osc: rgb(mezclar(b,'#000000',.42)), mid: rgb(b), luz: rgb(mezclar(b,'#ff6a50',.5)), esp: rgb(mezclar(b,'#ffd0c8',.5))};
+  }
+  function colorV(P, v){
+    const c = v < .55 ? mixc(P.osc,P.mid,v/.55) : v < .95 ? mixc(P.mid,P.luz,(v-.55)/.4) : mixc(P.luz,P.esp,Math.min(1,(v-.95)/.3));
+    return 'rgb(' + (c[0]|0) + ',' + (c[1]|0) + ',' + (c[2]|0) + ')';
   }
   /* torsión de reposo: la cinta ondula y se pliega, más hacia los costados; en el centro (donde se corta) queda de frente */
   function TW(px){
     const sx = (px - (XL+XR)/2) / ((XR-XL)/2);
     return 1.75*Math.sin(2.6*sx + .5)*(.2 + .8*Math.min(1,Math.abs(sx)));
+  }
+  /* La cinta satinada se dibuja en un lienzo (canvas) a resolución real: degradé continuo, sin bloques ni rendijas */
+  function preparaLienzo(){
+    if(!lienzo){ lienzo = $('cinta2d'); c2 = lienzo.getContext('2d'); }
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(innerWidth*dpr), H = Math.round(innerHeight*dpr);
+    if(lienzo.width !== W || lienzo.height !== H){ lienzo.width = W; lienzo.height = H; }
+    const r = $('escena').getBoundingClientRect(); escK = (r.width/1600) || 1;
+    c2.setTransform(1,0,0,1,0,0); c2.clearRect(0,0,W,H);
+    c2.setTransform(dpr*escK, 0, 0, dpr*escK, dpr*r.left, dpr*r.top);
   }
   function dibujarSatin(pz, amp){
     const n = pz.n, x = pz.x, y = pz.y;
@@ -563,8 +576,8 @@
       const contacto = Math.max(0, Math.min(1, (y[i]-(SUELO-26))/26));
       w[i] = ANCHO * Math.max(.2, Math.abs(Math.cos(th[i]))) * (1 - .72*contacto*Math.abs(tx[i]));
     }
-    /* se subdivide cada tramo para que el degradé sea continuo */
-    const SUB = 3, m = (n-1)*SUB + 1, OFF = [-0.5, -0.3333, -0.1667, 0.0, 0.1667, 0.3333, 0.5];
+    /* se subdivide cada tramo para que la curva y el degradé sean continuos */
+    const SUB = 3, m = (n-1)*SUB + 1, NST = 13;
     const X = new Array(m), Y = new Array(m), TH = new Array(m), W = new Array(m), NX = new Array(m), NY = new Array(m), TX = new Array(m), TY = new Array(m);
     for(let j=0;j<m;j++){
       const i = Math.min(n-2, Math.floor(j/SUB)), u = (j - i*SUB)/SUB, q = 1-u;
@@ -572,28 +585,40 @@
       NX[j] = nx[i]*q + nx[i+1]*u; NY[j] = ny[i]*q + ny[i+1]*u; TX[j] = tx[i]*q + tx[i+1]*u; TY[j] = ty[i]*q + ty[i+1]*u;
     }
     const libre = pz.libre==='last' ? m-1 : pz.libre==='first' ? 0 : -1, sentido = pz.libre==='last' ? 1 : -1;
-    function pt(j, off){
+    const P = palC || (palC = paleta());
+    /* color en NST puntos a lo ancho de cada sección: luz difusa + brillo, según la orientación de la tela */
+    const cols = new Array(m);
+    for(let j=0;j<m;j++){
+      const arr = new Array(NST);
+      for(let s=0;s<NST;s++){
+        const t = s/(NST-1) - .5, tb = TH[j] + 1.5*t, C = Math.cos(tb), S = Math.sin(tb);
+        const nl = C*LZ + S*(NX[j]*LX + NY[j]*LY), nh = C*HZ + S*(NX[j]*HX + NY[j]*HY);
+        const vF = .24 + .68*Math.max(0,nl) + .5*Math.pow(Math.max(0,nh),12);                 // frente
+        const vB = (.24 + .68*Math.max(0,-nl) + .5*Math.pow(Math.max(0,-nh),12))*.8;          // reverso, más oscuro
+        arr[s] = colorV(P, vB + (vF - vB)*ss((C + .2)/.4));                                   // el cambio de cara es gradual: sin escalones
+      }
+      cols[j] = arr;
+    }
+    function pos(j, off, ext){
       let px = X[j] + NX[j]*off, py = Y[j] + NY[j]*off;
       if(j===libre){ const k = sentido*pz.signo*2*DIAG*off; px += TX[j]*k; py += TY[j]*k; }
-      return px.toFixed(1) + ' ' + py.toFixed(1);
+      else if(ext){ px += TX[j]*ext; py += TY[j]*ext; }
+      return [px, py];
     }
-    const bins = new Array(BINES).fill(''); let dBase = '', dEdge = '';
-    for(let j=0;j<m-1;j++){
-      const thm = (TH[j]+TH[j+1])/2, nxm = (NX[j]+NX[j+1])/2, nym = (NY[j]+NY[j+1])/2;
-      dBase += 'M'+pt(j,-.5*W[j])+'L'+pt(j+1,-.5*W[j+1])+'L'+pt(j+1,.5*W[j+1])+'L'+pt(j,.5*W[j])+'Z';
-      for(let b=0;b<6;b++){
-        const a = OFF[b], c2 = OFF[b+1], tb = thm + 1.5*(a+c2)/2, C = Math.cos(tb), S = Math.sin(tb), sg = C >= 0 ? 1 : -1;
-        const nl = sg*(C*LZ + S*(nxm*LX + nym*LY)), nh = sg*(C*HZ + S*(nxm*HX + nym*HY));
-        let v = .24 + .68*Math.max(0,nl) + .5*Math.pow(Math.max(0,nh),12); if(sg < 0) v *= .8;
-        const k = Math.min(BINES-1, Math.max(0, Math.floor(v/VMAX*BINES)));
-        bins[k] += 'M'+pt(j,a*W[j])+'L'+pt(j+1,a*W[j+1])+'L'+pt(j+1,c2*W[j+1])+'L'+pt(j,c2*W[j])+'Z';
-      }
+    function tramo(j){
+      const a = pos(j,-.5*W[j]), b = pos(j,.5*W[j]), c = pos(j+1,.5*W[j+1], .9), d = pos(j+1,-.5*W[j+1], .9);
+      if(Math.hypot(b[0]-a[0], b[1]-a[1]) < .6) c2.fillStyle = cols[j][4];
+      else { const g = c2.createLinearGradient(a[0],a[1],b[0],b[1]); for(let s=0;s<NST;s++) g.addColorStop(s/(NST-1), cols[j][s]); c2.fillStyle = g; }
+      c2.beginPath(); c2.moveTo(a[0],a[1]); c2.lineTo(d[0],d[1]); c2.lineTo(c[0],c[1]); c2.lineTo(b[0],b[1]); c2.closePath(); c2.fill();
     }
-    for(let j=0;j<m;j++) dEdge += (j ? 'L' : 'M') + pt(j,.5*W[j]);
-    for(let j=m-1;j>=0;j--) dEdge += 'L' + pt(j,-.5*W[j]);
-    pz.el.base.setAttribute('d', dBase);
-    for(let k=0;k<BINES;k++) pz.el.bins[k].setAttribute('d', bins[k]);
-    pz.el.edge.setAttribute('d', dEdge);
+    for(let pasada=0; pasada<2; pasada++)                     // primero el reverso, después el frente, para que los pliegues se superpongan bien
+      for(let j=0;j<m-1;j++) if(((TH[j]+TH[j+1])/2 >= -Math.PI/2 && (TH[j]+TH[j+1])/2 <= Math.PI/2) === (pasada===1)) tramo(j);
+    c2.lineWidth = 1.1/escK; c2.strokeStyle = 'rgba(255,120,100,.42)'; c2.lineJoin = 'round';
+    for(const lado of [.5,-.5]){
+      c2.beginPath();
+      for(let j=0;j<m;j++){ const q = pos(j, lado*W[j]); if(j) c2.lineTo(q[0],q[1]); else c2.moveTo(q[0],q[1]); }
+      c2.stroke();
+    }
   }
 
   /* Una pieza de cinta = grupo SVG con sus capas (sombra, borde, tela, revés, brillos, costuras, hilos) */
@@ -614,14 +639,7 @@
     const n = xs.length, pz = Object.assign({n, g,
       x:Float32Array.from(xs), y:Float32Array.from(ys), px:Float32Array.from(xs), py:Float32Array.from(ys),
       sp:new Float32Array(n), el:{}}, cfg);
-    if(SATIN){
-      const P = palSat || (palSat = paleta());
-      pz.el.base = trazo(g, P.base);
-      pz.el.bins = P.col.map(c => { const e = trazo(g, c); e.setAttribute('shape-rendering','crispEdges'); return e; });   // sin suavizado entre tramos: no se ven rendijas
-      pz.el.edge = linea(g,'rgba(255,120,100,.5)',1.1);
-      pz.ths = Float32Array.from(xs, TW);
-      return pz;
-    }
+    if(SATIN){ pz.ths = Float32Array.from(xs, TW); return pz; }
     pz.el.sh   = [[7,.15],[11,.10],[15,.07]].map(a => trazo(g,'#000',a[1],'translate(0 '+a[0]+')'));
     pz.el.out  = trazo(g,'var(--c-sombra)');
     pz.el.base = trazo(g,'var(--c-base)');
@@ -759,6 +777,7 @@
 
   function cuadro(ahora){
     if(!vivo) return;
+    if(SATIN) preparaLienzo();
     const dt = Math.min(.05, (ahora - (cuadro.prev || ahora))/1000); cuadro.prev = ahora;
     if(!tDiv){
       if(entera){
